@@ -1,0 +1,2 @@
+# nats-spy
+spy tool
