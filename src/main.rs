@@ -1,4 +1,6 @@
 mod application;
+mod events;
+mod keys;
 
 use crate::application::Application;
 use anyhow::Result;
