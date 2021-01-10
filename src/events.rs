@@ -1,5 +1,6 @@
 use crossterm::event::{read, Event};
 use std::sync::mpsc::{channel, Receiver, RecvError};
+use std::thread;
 
 pub enum InputEvent<I> {
     Input(I),
@@ -7,29 +8,26 @@ pub enum InputEvent<I> {
 }
 
 pub struct Events {
-    rx: Receiver<InputEvent<Event>>,
+    keyboard_rx: Receiver<InputEvent<Event>>,
 }
 
 impl Events {
     pub fn new() -> Events {
-        let (tx, rx) = channel();
+        let (keyboard_tx, keyboard_rx) = channel();
 
-        std::thread::spawn(move || {
-            // let stdout = stdout();
-            loop {
-                if let Ok(key) = read() {
-                    if let Err(err) = tx.send(InputEvent::Input(key)) {
-                        eprintln!("{}", err);
-                        return;
-                    }
+        thread::spawn(move || loop {
+            if let Ok(key) = read() {
+                if let Err(err) = keyboard_tx.send(InputEvent::Input(key)) {
+                    eprintln!("{}", err);
+                    return;
                 }
             }
         });
 
-        Events { rx }
+        Events { keyboard_rx }
     }
 
     pub fn next(&self) -> Result<InputEvent<Event>, RecvError> {
-        self.rx.recv()
+        self.keyboard_rx.recv()
     }
 }
