@@ -9,7 +9,7 @@ impl Default for KeyConfig {
     fn default() -> Self {
         Self {
             exit_key: KeyEvent {
-                code: KeyCode::Char('q'),
+                code: KeyCode::Esc,
                 modifiers: KeyModifiers::NONE,
             },
         }

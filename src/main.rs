@@ -27,7 +27,7 @@ fn main() -> Result<()> {
     let mut terminal = Terminal::new(backend)?;
 
     // start terminal
-    let app = Application::default();
+    let mut app = Application::new();
     app.draw(&mut terminal)?;
 
     Ok(())
