@@ -4,9 +4,9 @@ use anyhow::Result;
 use crossterm::event::{Event, KeyCode, KeyEvent};
 use tui::{
     backend::Backend,
-    layout::{Constraint, Direction, Layout},
+    layout::{Constraint, Direction, Layout, Rect},
     widgets::{Block, Borders, Paragraph},
-    Terminal,
+    Frame, Terminal,
 };
 use unicode_width::UnicodeWidthStr;
 
@@ -16,14 +16,22 @@ enum InputMode {
 }
 
 pub struct Application {
+    left_chunk: Vec<Rect>,
     nats_server: String,
+    test_1: String,
+    test_2: String,
+    input_index: u16,
     input_mode: InputMode,
 }
 
 impl Application {
     pub fn new() -> Self {
         Self {
+            left_chunk: Vec::new(),
             nats_server: String::new(),
+            test_1: String::new(),
+            test_2: String::new(),
+            input_index: 0,
             input_mode: InputMode::Normal,
         }
     }
@@ -45,26 +53,41 @@ impl Application {
                 // left chunk
                 let left_chunk = Layout::default()
                     .direction(Direction::Vertical)
-                    .constraints([Constraint::Length(3), Constraint::Percentage(50)].as_ref())
+                    .constraints(
+                        [
+                            Constraint::Length(3),
+                            Constraint::Length(3),
+                            Constraint::Length(3),
+                            Constraint::Percentage(50),
+                        ]
+                        .as_ref(),
+                    )
                     .split(chunks[0]);
+
+                self.left_chunk = left_chunk.clone();
 
                 let input_nats_server = Paragraph::new(self.nats_server.as_ref())
                     .block(Block::default().borders(Borders::ALL).title("NATS Server"));
+
+                let input_test_1 = Paragraph::new(self.test_1.as_ref())
+                    .block(Block::default().borders(Borders::ALL).title("TEST 1"));
+
+                let input_test_2 = Paragraph::new(self.test_2.as_ref())
+                    .block(Block::default().borders(Borders::ALL).title("TEST 2"));
+
+                // render left chunk widgets
                 f.render_widget(input_nats_server, left_chunk[0]);
-
-                f.set_cursor(
-                    // Put cursor past the end of the input text
-                    left_chunk[0].x + self.nats_server.width() as u16 + 1,
-                    // Move one line down, from the border to the input line
-                    left_chunk[0].y + 1,
-                );
-
-                //let left_up_chunk = Block::default().title("Right Chunk").borders(Borders::ALL);
-                // f.render_widget(left_up_chunk, left_chunk[0]);
+                f.render_widget(input_test_1, left_chunk[1]);
+                f.render_widget(input_test_2, left_chunk[2]);
 
                 // right chunk
                 let right_chunk = Block::default().title("Right Chunk").borders(Borders::ALL);
                 f.render_widget(right_chunk, chunks[1]);
+
+                match self.input_mode {
+                    InputMode::Normal => {}
+                    InputMode::Editing => self.set_cursor(f),
+                }
             })?;
 
             if let InputEvent::Input(input) = events.next()? {
@@ -84,10 +107,13 @@ impl Application {
                                 self.input_mode = InputMode::Normal;
                             }
                             KeyCode::Char(c) => {
-                                self.nats_server.push(c);
+                                self.get_input().push(c);
                             }
                             KeyCode::Backspace => {
-                                self.nats_server.pop();
+                                self.get_input().pop();
+                            }
+                            KeyCode::Tab => {
+                                self.input_index = (self.input_index + 1) % 3;
                             }
                             _ => {}
                         },
@@ -97,5 +123,21 @@ impl Application {
         }
 
         Ok(())
+    }
+
+    fn set_cursor<B: Backend>(&mut self, f: &mut Frame<B>) {
+        f.set_cursor(
+            self.left_chunk[self.input_index as usize].x + self.get_input().width() as u16 + 1,
+            self.left_chunk[self.input_index as usize].y + 1,
+        );
+    }
+
+    fn get_input(&mut self) -> &mut String {
+        match self.input_index {
+            0 => &mut self.nats_server,
+            1 => &mut self.test_1,
+            2 => &mut self.test_2,
+            _ => &mut self.nats_server,
+        }
     }
 }
