@@ -1,6 +1,7 @@
 mod application;
 mod events;
 mod keys;
+mod nats;
 
 use crate::application::Application;
 use anyhow::Result;

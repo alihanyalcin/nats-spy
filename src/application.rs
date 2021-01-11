@@ -5,7 +5,8 @@ use crossterm::event::{Event, KeyCode, KeyEvent};
 use tui::{
     backend::Backend,
     layout::{Constraint, Direction, Layout, Rect},
-    widgets::{Block, Borders, Paragraph},
+    text::{Span, Spans, Text},
+    widgets::{Block, Borders, List, ListItem, Paragraph},
     Frame, Terminal,
 };
 use unicode_width::UnicodeWidthStr;
@@ -22,6 +23,7 @@ pub struct Application {
     test_2: String,
     input_index: u16,
     input_mode: InputMode,
+    logs: Vec<String>,
 }
 
 impl Application {
@@ -33,14 +35,14 @@ impl Application {
             test_2: String::new(),
             input_index: 0,
             input_mode: InputMode::Normal,
+            logs: Vec::new(),
         }
     }
 
     pub fn draw<B: Backend>(&mut self, terminal: &mut Terminal<B>) -> Result<()> {
         terminal.clear()?;
 
-        let events = Events::new();
-        let keys = KeyConfig::default();
+        let mut events = Events::new(&self.logs);
 
         loop {
             terminal.draw(|f| {
@@ -75,10 +77,24 @@ impl Application {
                 let input_test_2 = Paragraph::new(self.test_2.as_ref())
                     .block(Block::default().borders(Borders::ALL).title("TEST 2"));
 
+                let logs: Vec<ListItem> = self
+                    .logs
+                    .iter()
+                    .enumerate()
+                    .map(|(i, m)| {
+                        let content = vec![Spans::from(Span::raw(format!("{}: {}", i, m)))];
+                        ListItem::new(content)
+                    })
+                    .collect();
+
+                let logs =
+                    List::new(logs).block(Block::default().borders(Borders::ALL).title("Logs"));
+
                 // render left chunk widgets
                 f.render_widget(input_nats_server, left_chunk[0]);
                 f.render_widget(input_test_1, left_chunk[1]);
                 f.render_widget(input_test_2, left_chunk[2]);
+                f.render_widget(logs, left_chunk[3]);
 
                 // right chunk
                 let right_chunk = Block::default().title("Right Chunk").borders(Borders::ALL);
@@ -90,7 +106,8 @@ impl Application {
                 }
             })?;
 
-            if let InputEvent::Input(input) = events.next()? {
+            // handle keyboard
+            if let InputEvent::Input(input) = events.next_key()? {
                 if let Event::Key(KeyEvent { code, .. }) = input {
                     match self.input_mode {
                         InputMode::Normal => match code {
@@ -99,6 +116,9 @@ impl Application {
                             }
                             KeyCode::Esc => {
                                 break;
+                            }
+                            KeyCode::Char('c') => {
+                                events.connect(self.nats_server.clone(), None, None, None);
                             }
                             _ => {}
                         },
