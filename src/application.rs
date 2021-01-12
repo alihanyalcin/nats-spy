@@ -105,7 +105,7 @@ impl Application {
                 }
             })?;
 
-            // handle keyboard
+            // handle events
             match events.next_key()? {
                 InputEvent::Input(input) => {
                     if let Event::Key(KeyEvent { code, .. }) = input {
@@ -115,6 +115,7 @@ impl Application {
                                     self.input_mode = InputMode::Editing;
                                 }
                                 KeyCode::Esc => {
+                                    events.drain();
                                     break;
                                 }
                                 KeyCode::Char('c') => {

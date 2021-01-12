@@ -15,6 +15,19 @@ enum ConnectionStatus {
     Disconnected,
 }
 
+impl Default for NatsClient {
+    fn default() -> Self {
+        Self {
+            host: "127.0.0.1".to_string(),
+            username: None,
+            password: None,
+            token: None,
+            client: None,
+            status: ConnectionStatus::Disconnected,
+        }
+    }
+}
+
 impl NatsClient {
     pub fn new(
         host: String,
@@ -55,9 +68,15 @@ impl NatsClient {
         Ok(())
     }
 
-    pub fn drain(&mut self) -> Result<()> {
+    pub fn drain(&mut self) {
         if let Some(c) = &self.client {
-            c.drain()?
+            c.drain().unwrap()
+        }
+    }
+
+    pub fn subscribe(&self, topic: String) -> Result<()> {
+        if let Some(c) = &self.client {
+            let sub = c.subscribe(topic.as_str())?;
         }
         bail!("no connection")
     }

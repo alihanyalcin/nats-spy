@@ -13,6 +13,7 @@ pub enum InputEvent {
 pub struct Events {
     rx: Receiver<InputEvent>,
     log: Log,
+    nc: NatsClient,
 }
 
 impl Events {
@@ -30,8 +31,9 @@ impl Events {
         });
 
         let log = Log::new(tx);
+        let nc = NatsClient::default();
 
-        Events { rx, log }
+        Events { rx, log, nc }
     }
 
     pub fn next_key(&self) -> Result<InputEvent, RecvError> {
@@ -45,13 +47,21 @@ impl Events {
         password: Option<String>,
         token: Option<String>,
     ) {
-        self.log.info("Trying to connect...".to_string());
+        self.log
+            .info(format!("Trying to connect NATS Server {}", host));
 
         let mut nats_client = NatsClient::new(host.clone(), username, password, token);
 
         match nats_client.connect() {
-            Ok(_) => self.log.info(format!("Connected to {}", host)),
+            Ok(_) => {
+                self.nc = nats_client;
+                self.log.info(format!("Connected to {}", host))
+            }
             Err(err) => self.log.error(format!("Not connected. {}", err)),
         }
+    }
+
+    pub fn drain(&mut self) {
+        self.nc.drain()
     }
 }
