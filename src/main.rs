@@ -1,6 +1,7 @@
 mod application;
 mod events;
 mod keys;
+mod log;
 mod nats;
 
 use crate::application::Application;

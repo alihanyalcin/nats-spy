@@ -1,38 +1,42 @@
+use crate::log::Log;
 use crate::nats::NatsClient;
 use anyhow::Result;
 use crossterm::event::{read, Event};
 use std::sync::mpsc::{channel, Receiver, RecvError, Sender};
 use std::thread;
 
-pub enum InputEvent<I> {
-    Input(I),
+pub enum InputEvent {
+    Input(Event),
     Logs(String),
     Tick,
 }
 
-pub struct Events<'a> {
-    keyboard_rx: Receiver<InputEvent<Event>>,
-    logs: &'a mut Vec<String>,
+pub struct Events {
+    rx: Receiver<InputEvent>,
+    log: Log,
 }
 
-impl<'a> Events<'a> {
-    pub fn new(logs: &mut Vec<String>) -> Events {
-        let (keyboard_tx, keyboard_rx) = channel();
+impl Events {
+    pub fn new() -> Events {
+        let (tx, rx) = channel();
 
+        let tx_keyboard = tx.clone();
         thread::spawn(move || loop {
             if let Ok(key) = read() {
-                if let Err(err) = keyboard_tx.send(InputEvent::Input(key)) {
+                if let Err(err) = tx_keyboard.send(InputEvent::Input(key)) {
                     eprintln!("{}", err);
                     return;
                 }
             }
         });
 
-        Events { keyboard_rx, logs }
+        let log = Log::new(tx);
+
+        Events { rx, log }
     }
 
-    pub fn next_key(&self) -> Result<InputEvent<Event>, RecvError> {
-        self.keyboard_rx.recv()
+    pub fn next_key(&self) -> Result<InputEvent, RecvError> {
+        self.rx.recv()
     }
 
     pub fn connect(
@@ -42,15 +46,13 @@ impl<'a> Events<'a> {
         password: Option<String>,
         token: Option<String>,
     ) {
+        self.log.info("Trying to connect...".to_string());
+
         let mut nats_client = NatsClient::new(host.clone(), username, password, token);
 
         match nats_client.connect() {
-            Ok(_) => self
-                .logs
-                .push(format!("Connected to NATS server {}", host).to_string()),
-            Err(err) => self
-                .logs
-                .push(format!("Client cannot connected. Error: {}", err).to_string()),
+            Ok(_) => self.log.info(format!("Connected to {}", host)),
+            Err(err) => self.log.error(format!("Not connected. {}", err)),
         }
     }
 }

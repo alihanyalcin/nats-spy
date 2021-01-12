@@ -42,7 +42,7 @@ impl Application {
     pub fn draw<B: Backend>(&mut self, terminal: &mut Terminal<B>) -> Result<()> {
         terminal.clear()?;
 
-        let mut events = Events::new(&self.logs);
+        let mut events = Events::new();
 
         loop {
             terminal.draw(|f| {
@@ -81,8 +81,8 @@ impl Application {
                     .logs
                     .iter()
                     .enumerate()
-                    .map(|(i, m)| {
-                        let content = vec![Spans::from(Span::raw(format!("{}: {}", i, m)))];
+                    .map(|(_i, m)| {
+                        let content = vec![Spans::from(Span::raw(m))];
                         ListItem::new(content)
                     })
                     .collect();
@@ -107,38 +107,42 @@ impl Application {
             })?;
 
             // handle keyboard
-            if let InputEvent::Input(input) = events.next_key()? {
-                if let Event::Key(KeyEvent { code, .. }) = input {
-                    match self.input_mode {
-                        InputMode::Normal => match code {
-                            KeyCode::Enter => {
-                                self.input_mode = InputMode::Editing;
-                            }
-                            KeyCode::Esc => {
-                                break;
-                            }
-                            KeyCode::Char('c') => {
-                                events.connect(self.nats_server.clone(), None, None, None);
-                            }
-                            _ => {}
-                        },
-                        InputMode::Editing => match code {
-                            KeyCode::Enter => {
-                                self.input_mode = InputMode::Normal;
-                            }
-                            KeyCode::Char(c) => {
-                                self.get_input().push(c);
-                            }
-                            KeyCode::Backspace => {
-                                self.get_input().pop();
-                            }
-                            KeyCode::Tab => {
-                                self.input_index = (self.input_index + 1) % 3;
-                            }
-                            _ => {}
-                        },
+            match events.next_key()? {
+                InputEvent::Input(input) => {
+                    if let Event::Key(KeyEvent { code, .. }) = input {
+                        match self.input_mode {
+                            InputMode::Normal => match code {
+                                KeyCode::Enter => {
+                                    self.input_mode = InputMode::Editing;
+                                }
+                                KeyCode::Esc => {
+                                    break;
+                                }
+                                KeyCode::Char('c') => {
+                                    events.connect(self.nats_server.clone(), None, None, None);
+                                }
+                                _ => {}
+                            },
+                            InputMode::Editing => match code {
+                                KeyCode::Enter => {
+                                    self.input_mode = InputMode::Normal;
+                                }
+                                KeyCode::Char(c) => {
+                                    self.get_input().push(c);
+                                }
+                                KeyCode::Backspace => {
+                                    self.get_input().pop();
+                                }
+                                KeyCode::Tab => {
+                                    self.input_index = (self.input_index + 1) % 3;
+                                }
+                                _ => {}
+                            },
+                        }
                     }
                 }
+                InputEvent::Logs(log) => self.logs.push(log),
+                _ => {}
             }
         }
 
