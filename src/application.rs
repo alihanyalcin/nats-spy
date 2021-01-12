@@ -1,11 +1,10 @@
 use crate::events::{Events, InputEvent};
-use crate::keys::KeyConfig;
 use anyhow::Result;
 use crossterm::event::{Event, KeyCode, KeyEvent};
 use tui::{
     backend::Backend,
     layout::{Constraint, Direction, Layout, Rect},
-    text::{Span, Spans, Text},
+    text::{Span, Spans},
     widgets::{Block, Borders, List, ListItem, Paragraph},
     Frame, Terminal,
 };
@@ -18,9 +17,9 @@ enum InputMode {
 
 pub struct Application {
     left_chunk: Vec<Rect>,
-    nats_server: String,
-    test_1: String,
-    test_2: String,
+    input_nats_server: String,
+    input_test_1: String,
+    input_test_2: String,
     input_index: u16,
     input_mode: InputMode,
     logs: Vec<String>,
@@ -30,9 +29,9 @@ impl Application {
     pub fn new() -> Self {
         Self {
             left_chunk: Vec::new(),
-            nats_server: String::new(),
-            test_1: String::new(),
-            test_2: String::new(),
+            input_nats_server: String::new(),
+            input_test_1: String::new(),
+            input_test_2: String::new(),
             input_index: 0,
             input_mode: InputMode::Normal,
             logs: Vec::new(),
@@ -68,13 +67,13 @@ impl Application {
 
                 self.left_chunk = left_chunk.clone();
 
-                let input_nats_server = Paragraph::new(self.nats_server.as_ref())
+                let input_nats_server = Paragraph::new(self.input_nats_server.as_ref())
                     .block(Block::default().borders(Borders::ALL).title("NATS Server"));
 
-                let input_test_1 = Paragraph::new(self.test_1.as_ref())
+                let input_test_1 = Paragraph::new(self.input_test_1.as_ref())
                     .block(Block::default().borders(Borders::ALL).title("TEST 1"));
 
-                let input_test_2 = Paragraph::new(self.test_2.as_ref())
+                let input_test_2 = Paragraph::new(self.input_test_2.as_ref())
                     .block(Block::default().borders(Borders::ALL).title("TEST 2"));
 
                 let logs: Vec<ListItem> = self
@@ -119,7 +118,12 @@ impl Application {
                                     break;
                                 }
                                 KeyCode::Char('c') => {
-                                    events.connect(self.nats_server.clone(), None, None, None);
+                                    events.connect(
+                                        self.input_nats_server.clone(),
+                                        None,
+                                        None,
+                                        None,
+                                    );
                                 }
                                 _ => {}
                             },
@@ -142,7 +146,6 @@ impl Application {
                     }
                 }
                 InputEvent::Logs(log) => self.logs.push(log),
-                _ => {}
             }
         }
 
@@ -158,10 +161,10 @@ impl Application {
 
     fn get_input(&mut self) -> &mut String {
         match self.input_index {
-            0 => &mut self.nats_server,
-            1 => &mut self.test_1,
-            2 => &mut self.test_2,
-            _ => &mut self.nats_server,
+            0 => &mut self.input_nats_server,
+            1 => &mut self.input_test_1,
+            2 => &mut self.input_test_2,
+            _ => &mut self.input_nats_server,
         }
     }
 }

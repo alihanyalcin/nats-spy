@@ -2,13 +2,12 @@ use crate::log::Log;
 use crate::nats::NatsClient;
 use anyhow::Result;
 use crossterm::event::{read, Event};
-use std::sync::mpsc::{channel, Receiver, RecvError, Sender};
+use std::sync::mpsc::{channel, Receiver, RecvError};
 use std::thread;
 
 pub enum InputEvent {
     Input(Event),
     Logs(String),
-    Tick,
 }
 
 pub struct Events {

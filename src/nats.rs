@@ -1,4 +1,4 @@
-use anyhow::Result;
+use anyhow::{bail, Result};
 use nats::{self, Connection};
 
 pub struct NatsClient {
@@ -33,6 +33,10 @@ impl NatsClient {
     }
 
     pub fn connect(&mut self) -> Result<()> {
+        if let ConnectionStatus::Connected = self.status {
+            bail!("Already connected.")
+        }
+
         let client = {
             match ((&self.username, &self.password), &self.token) {
                 ((Some(username), Some(password)), _) => {
@@ -46,17 +50,22 @@ impl NatsClient {
         .connect(self.host.as_str())?;
 
         self.client = Some(client);
+        self.status = ConnectionStatus::Connected;
 
         Ok(())
     }
 
-    pub fn publish(&self, topic: String, message: String) {
-        match &self.client {
-            Some(c) => match c.publish(topic.as_str(), message) {
-                Ok(_) => println!("send"),
-                Err(_) => println!("not send"),
-            },
-            None => println!("no connection"),
+    pub fn drain(&mut self) -> Result<()> {
+        if let Some(c) = &self.client {
+            c.drain()?
         }
+        bail!("no connection")
+    }
+
+    pub fn publish(&self, topic: String, message: String) -> Result<()> {
+        if let Some(c) = &self.client {
+            c.publish(topic.as_str(), message)?
+        }
+        bail!("no connection")
     }
 }
