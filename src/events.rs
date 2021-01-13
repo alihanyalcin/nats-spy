@@ -1,7 +1,8 @@
 use crate::nats::NatsClient;
 use anyhow::Result;
 use crossterm::event::{read, Event};
-use std::sync::mpsc::{channel, Receiver, RecvError};
+use std::sync::mpsc::{channel, Receiver, RecvError, Sender};
+use std::sync::{Arc, Mutex};
 use std::thread;
 
 #[derive(Clone)]
@@ -13,7 +14,8 @@ pub enum InputEvent {
 
 pub struct Events {
     rx: Receiver<InputEvent>,
-    nats_client: NatsClient,
+    tx: Sender<InputEvent>,
+    nats_client: Arc<Mutex<NatsClient>>,
 }
 
 impl Events {
@@ -30,17 +32,18 @@ impl Events {
             }
         });
 
-        let nats_client = NatsClient::new(nats_url, None, None, None);
+        let nats_client = Arc::new(Mutex::new(NatsClient::new(nats_url, None, None, None)));
 
-        let mut nc = nats_client.clone();
+        let nc = nats_client.clone();
         let tx_log = tx.clone();
         thread::spawn(move || {
             tx_log
                 .send(InputEvent::Logs(
-                    "Tring to connect NATS Server...".to_string(),
+                    "Trying to connect NATS Server...".to_string(),
                 ))
                 .unwrap();
 
+            let mut nc = nc.lock().unwrap();
             match nc.connect() {
                 Ok(_) => tx_log
                     .send(InputEvent::Logs("Connected to NATS Server".to_string()))
@@ -61,11 +64,12 @@ impl Events {
                     return;
                 }
             };
+            drop(nc);
 
             for msg in sub.messages() {
                 tx_log
                     .send(InputEvent::Messages(format!(
-                        "{} -> {}",
+                        "[{}] -> {}",
                         msg.subject,
                         std::str::from_utf8(&msg.data).unwrap()
                     )))
@@ -73,14 +77,37 @@ impl Events {
             }
         });
 
-        Events { rx, nats_client }
+        Events {
+            rx,
+            tx,
+            nats_client,
+        }
     }
 
     pub fn next(&self) -> Result<InputEvent, RecvError> {
         self.rx.recv()
     }
 
+    pub fn publish(&self, sub: String, msg: String) {
+        match self.nats_client.lock().unwrap().publish(sub.clone(), msg) {
+            Ok(_) => self
+                .tx
+                .send(InputEvent::Logs(format!(
+                    "Message send to subject '{}'",
+                    sub.clone()
+                )))
+                .unwrap(),
+            Err(err) => self
+                .tx
+                .send(InputEvent::Logs(format!(
+                    "Message cannot send to subject '{}'. {}",
+                    sub, err
+                )))
+                .unwrap(),
+        }
+    }
+
     pub fn drain(&mut self) {
-        self.nats_client.drain()
+        self.nats_client.lock().unwrap().drain()
     }
 }

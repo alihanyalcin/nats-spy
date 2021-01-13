@@ -19,8 +19,9 @@ enum InputMode {
 pub struct Application {
     left_chunk: Vec<Rect>,
     input_nats_url: String,
-    input_subject: String,
-    input_test_2: String,
+    input_sub_subject: String,
+    input_pub_subject: String,
+    input_pub_message: String,
     input_index: u16,
     input_mode: InputMode,
     logs: Vec<String>,
@@ -32,9 +33,10 @@ impl Application {
         Self {
             left_chunk: Vec::new(),
             input_nats_url: nats_url.to_string(),
-            input_subject: subject.to_string(),
-            input_test_2: String::new(),
-            input_index: 0,
+            input_sub_subject: subject.to_string(),
+            input_pub_subject: String::new(),
+            input_pub_message: String::new(),
+            input_index: 2,
             input_mode: InputMode::Normal,
             logs: Vec::new(),
             messages: Vec::new(),
@@ -44,7 +46,7 @@ impl Application {
     pub fn draw<B: Backend>(&mut self, terminal: &mut Terminal<B>) -> Result<()> {
         terminal.clear()?;
 
-        let mut events = Events::new(self.input_nats_url.clone(), self.input_subject.clone());
+        let mut events = Events::new(self.input_nats_url.clone(), self.input_sub_subject.clone());
 
         loop {
             terminal.draw(|f| {
@@ -62,6 +64,7 @@ impl Application {
                             Constraint::Length(3),
                             Constraint::Length(3),
                             Constraint::Length(3),
+                            Constraint::Length(3),
                             Constraint::Percentage(50),
                         ]
                         .as_ref(),
@@ -73,19 +76,33 @@ impl Application {
                 let input_nats_server = Paragraph::new(self.input_nats_url.as_ref())
                     .block(Block::default().borders(Borders::ALL).title("NATS Server"));
 
-                let input_test_1 = Paragraph::new(self.input_subject.as_ref())
+                let input_subject = Paragraph::new(self.input_sub_subject.as_ref())
                     .block(Block::default().borders(Borders::ALL).title("Subject"));
 
-                let input_test_2 = Paragraph::new(self.input_test_2.as_ref())
-                    .block(Block::default().borders(Borders::ALL).title("TEST 2"));
+                let input_pub_subject = Paragraph::new(self.input_pub_subject.as_ref()).block(
+                    Block::default()
+                        .borders(Borders::ALL)
+                        .title("Puslish Subject"),
+                );
+
+                let input_pub_message = Paragraph::new(self.input_pub_message.as_ref()).block(
+                    Block::default()
+                        .borders(Borders::ALL)
+                        .title("Publish Message"),
+                );
 
                 let logs: Vec<ListItem> = self
                     .logs
                     .iter()
                     .enumerate()
-                    .map(|(_i, m)| {
-                        let content = vec![Spans::from(Span::raw(m))];
-                        ListItem::new(content)
+                    .rev()
+                    .map(|(i, m)| {
+                        let logs = Spans::from(vec![Span::raw(format!("[#{}]: {}", i, m))]);
+
+                        ListItem::new(vec![
+                            logs,
+                            Spans::from("-".repeat(chunks[1].width as usize)),
+                        ])
                     })
                     .collect();
 
@@ -94,19 +111,19 @@ impl Application {
 
                 // render left chunk widgets
                 f.render_widget(input_nats_server, left_chunk[0]);
-                f.render_widget(input_test_1, left_chunk[1]);
-                f.render_widget(input_test_2, left_chunk[2]);
-                f.render_widget(logs, left_chunk[3]);
+                f.render_widget(input_subject, left_chunk[1]);
+                f.render_widget(input_pub_subject, left_chunk[2]);
+                f.render_widget(input_pub_message, left_chunk[3]);
+                f.render_widget(logs, left_chunk[4]);
 
                 // right chunk
-                let right_chunk = Block::default().title("Right Chunk").borders(Borders::ALL);
-
                 let messages: Vec<ListItem> = self
                     .messages
                     .iter()
                     .enumerate()
-                    .map(|(_i, m)| {
-                        let msg = Spans::from(vec![Span::raw(m)]);
+                    .rev()
+                    .map(|(i, m)| {
+                        let msg = Spans::from(vec![Span::raw(format!("[#{}]: {}", i, m))]);
 
                         ListItem::new(vec![msg, Spans::from("-".repeat(chunks[1].width as usize))])
                     })
@@ -136,6 +153,10 @@ impl Application {
                                     events.drain();
                                     break;
                                 }
+                                KeyCode::Char('p') => events.publish(
+                                    self.input_pub_subject.clone(),
+                                    self.input_pub_message.clone(),
+                                ),
                                 _ => {}
                             },
                             InputMode::Editing => match code {
@@ -149,7 +170,7 @@ impl Application {
                                     self.get_input().pop();
                                 }
                                 KeyCode::Tab => {
-                                    self.input_index = (self.input_index + 1) % 3;
+                                    self.input_index = (self.input_index + 1) % 4;
                                 }
                                 _ => {}
                             },
@@ -173,10 +194,12 @@ impl Application {
 
     fn get_input(&mut self) -> &mut String {
         match self.input_index {
-            0 => &mut self.input_nats_url,
-            1 => &mut self.input_subject,
-            2 => &mut self.input_test_2,
-            _ => &mut self.input_nats_url,
+            2 => &mut self.input_pub_subject,
+            3 => &mut self.input_pub_message,
+            _ => {
+                self.input_index = 2;
+                &mut self.input_pub_subject
+            }
         }
     }
 }

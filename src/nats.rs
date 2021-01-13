@@ -73,10 +73,17 @@ impl NatsClient {
         bail!("no connection")
     }
 
-    pub fn publish(&self, topic: String, message: String) -> Result<()> {
-        if let Some(c) = &self.client {
-            c.publish(topic.as_str(), message)?
+    pub fn publish(&self, subject: String, message: String) -> Result<()> {
+        if subject.is_empty() {
+            bail!("Subject is empty")
         }
-        bail!("no connection")
+
+        if let Some(c) = &self.client {
+            c.publish(subject.as_str(), message)?
+        } else {
+            bail!("no connection")
+        }
+
+        Ok(())
     }
 }

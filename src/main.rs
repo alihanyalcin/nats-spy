@@ -32,8 +32,7 @@ fn main() -> Result<()> {
                 .help("subscription subject")
                 .short("s")
                 .long("subject")
-                .takes_value(true)
-                .required(true),
+                .default_value(">"),
         )
         .get_matches();
 
