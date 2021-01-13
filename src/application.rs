@@ -17,7 +17,7 @@ enum InputMode {
 
 pub struct Application {
     left_chunk: Vec<Rect>,
-    input_nats_server: String,
+    input_nats_url: String,
     input_test_1: String,
     input_test_2: String,
     input_index: u16,
@@ -26,10 +26,10 @@ pub struct Application {
 }
 
 impl Application {
-    pub fn new() -> Self {
+    pub fn new(nats_url: &str) -> Self {
         Self {
             left_chunk: Vec::new(),
-            input_nats_server: String::new(),
+            input_nats_url: nats_url.to_string(),
             input_test_1: String::new(),
             input_test_2: String::new(),
             input_index: 0,
@@ -41,7 +41,7 @@ impl Application {
     pub fn draw<B: Backend>(&mut self, terminal: &mut Terminal<B>) -> Result<()> {
         terminal.clear()?;
 
-        let mut events = Events::new();
+        let mut events = Events::new(self.input_nats_url.clone());
 
         loop {
             terminal.draw(|f| {
@@ -67,7 +67,7 @@ impl Application {
 
                 self.left_chunk = left_chunk.clone();
 
-                let input_nats_server = Paragraph::new(self.input_nats_server.as_ref())
+                let input_nats_server = Paragraph::new(self.input_nats_url.as_ref())
                     .block(Block::default().borders(Borders::ALL).title("NATS Server"));
 
                 let input_test_1 = Paragraph::new(self.input_test_1.as_ref())
@@ -106,7 +106,7 @@ impl Application {
             })?;
 
             // handle events
-            match events.next_key()? {
+            match events.next()? {
                 InputEvent::Input(input) => {
                     if let Event::Key(KeyEvent { code, .. }) = input {
                         match self.input_mode {
@@ -117,14 +117,6 @@ impl Application {
                                 KeyCode::Esc => {
                                     events.drain();
                                     break;
-                                }
-                                KeyCode::Char('c') => {
-                                    events.connect(
-                                        self.input_nats_server.clone(),
-                                        None,
-                                        None,
-                                        None,
-                                    );
                                 }
                                 _ => {}
                             },
@@ -162,10 +154,10 @@ impl Application {
 
     fn get_input(&mut self) -> &mut String {
         match self.input_index {
-            0 => &mut self.input_nats_server,
+            0 => &mut self.input_nats_url,
             1 => &mut self.input_test_1,
             2 => &mut self.input_test_2,
-            _ => &mut self.input_nats_server,
+            _ => &mut self.input_nats_url,
         }
     }
 }

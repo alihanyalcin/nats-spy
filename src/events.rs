@@ -1,10 +1,10 @@
-use crate::log::Log;
 use crate::nats::NatsClient;
 use anyhow::Result;
 use crossterm::event::{read, Event};
 use std::sync::mpsc::{channel, Receiver, RecvError};
 use std::thread;
 
+#[derive(Clone)]
 pub enum InputEvent {
     Input(Event),
     Logs(String),
@@ -12,12 +12,11 @@ pub enum InputEvent {
 
 pub struct Events {
     rx: Receiver<InputEvent>,
-    log: Log,
-    nc: NatsClient,
+    nats_client: NatsClient,
 }
 
 impl Events {
-    pub fn new() -> Events {
+    pub fn new(nats_url: String) -> Events {
         let (tx, rx) = channel();
 
         let tx_keyboard = tx.clone();
@@ -30,38 +29,35 @@ impl Events {
             }
         });
 
-        let log = Log::new(tx);
-        let nc = NatsClient::default();
+        let nats_client = NatsClient::new(nats_url, None, None, None);
 
-        Events { rx, log, nc }
+        let mut nc = nats_client.clone();
+        let tx_log = tx.clone();
+        thread::spawn(move || {
+            tx_log
+                .send(InputEvent::Logs(
+                    "Tring to connect NATS Server...".to_string(),
+                ))
+                .unwrap();
+
+            match nc.connect() {
+                Ok(_) => tx_log
+                    .send(InputEvent::Logs("Connected to NATS Server".to_string()))
+                    .unwrap(),
+                Err(err) => tx_log
+                    .send(InputEvent::Logs(format!("Not connected. {}", err)))
+                    .unwrap(),
+            }
+        });
+
+        Events { rx, nats_client }
     }
 
-    pub fn next_key(&self) -> Result<InputEvent, RecvError> {
+    pub fn next(&self) -> Result<InputEvent, RecvError> {
         self.rx.recv()
     }
 
-    pub fn connect(
-        &mut self,
-        host: String,
-        username: Option<String>,
-        password: Option<String>,
-        token: Option<String>,
-    ) {
-        self.log
-            .info(format!("Trying to connect NATS Server {}", host));
-
-        let mut nats_client = NatsClient::new(host.clone(), username, password, token);
-
-        match nats_client.connect() {
-            Ok(_) => {
-                self.nc = nats_client;
-                self.log.info(format!("Connected to {}", host))
-            }
-            Err(err) => self.log.error(format!("Not connected. {}", err)),
-        }
-    }
-
     pub fn drain(&mut self) {
-        self.nc.drain()
+        self.nats_client.drain()
     }
 }

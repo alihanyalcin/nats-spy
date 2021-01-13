@@ -1,6 +1,7 @@
 use anyhow::{bail, Result};
 use nats::{self, Connection};
 
+#[derive(Clone)]
 pub struct NatsClient {
     host: String,
     username: Option<String>,
@@ -10,22 +11,10 @@ pub struct NatsClient {
     status: ConnectionStatus,
 }
 
+#[derive(Clone)]
 enum ConnectionStatus {
     Connected,
     Disconnected,
-}
-
-impl Default for NatsClient {
-    fn default() -> Self {
-        Self {
-            host: "127.0.0.1".to_string(),
-            username: None,
-            password: None,
-            token: None,
-            client: None,
-            status: ConnectionStatus::Disconnected,
-        }
-    }
 }
 
 impl NatsClient {

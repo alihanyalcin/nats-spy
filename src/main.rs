@@ -1,7 +1,6 @@
 mod application;
 mod events;
 mod keys;
-mod log;
 mod nats;
 
 use crate::application::Application;
@@ -17,7 +16,23 @@ use tui::backend::CrosstermBackend;
 use tui::Terminal;
 
 fn main() -> Result<()> {
-    init_cmdline()?;
+    let app = App::new(crate_name!())
+        .author(crate_authors!())
+        .about(crate_description!())
+        .version(crate_version!())
+        .arg(
+            Arg::with_name("nats-url")
+                .help("nats url")
+                .short("n")
+                .long("nats-url")
+                .default_value("nats://localhost:4222"),
+        );
+
+    let config = app.get_matches();
+
+    let nats_url = config.value_of("nats-url").unwrap();
+
+    println!("{}", nats_url);
 
     // initialize terminal
     setup_terminal()?;
@@ -29,24 +44,8 @@ fn main() -> Result<()> {
     let mut terminal = Terminal::new(backend)?;
 
     // start terminal
-    let mut app = Application::new();
+    let mut app = Application::new(nats_url);
     app.draw(&mut terminal)?;
-
-    Ok(())
-}
-
-fn init_cmdline() -> Result<()> {
-    let app = App::new(crate_name!())
-        .author(crate_authors!())
-        .about(crate_description!())
-        .version(crate_version!())
-        .arg(Arg::with_name("test").help("test").short("t").long("test"));
-
-    let config = app.get_matches();
-
-    if config.is_present("test") {
-        println!("test");
-    }
 
     Ok(())
 }
