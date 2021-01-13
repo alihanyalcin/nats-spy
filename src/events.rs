@@ -16,7 +16,7 @@ pub struct Events {
 }
 
 impl Events {
-    pub fn new(nats_url: String) -> Events {
+    pub fn new(nats_url: String, subject: String) -> Events {
         let (tx, rx) = channel();
 
         let tx_keyboard = tx.clone();
@@ -44,9 +44,25 @@ impl Events {
                 Ok(_) => tx_log
                     .send(InputEvent::Logs("Connected to NATS Server".to_string()))
                     .unwrap(),
-                Err(err) => tx_log
-                    .send(InputEvent::Logs(format!("Not connected. {}", err)))
-                    .unwrap(),
+                Err(err) => {
+                    tx_log
+                        .send(InputEvent::Logs(format!("Not connected. {}", err)))
+                        .unwrap();
+
+                    return;
+                }
+            }
+
+            let sub = match nc.subscribe(subject) {
+                Ok(sub) => sub,
+                Err(err) => {
+                    tx_log.send(InputEvent::Logs(err.to_string())).unwrap();
+                    return;
+                }
+            };
+
+            for msg in sub.messages() {
+                println!("{:?} - {:?}", msg.subject, msg.data)
             }
         });
 

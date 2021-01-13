@@ -1,5 +1,5 @@
 use anyhow::{bail, Result};
-use nats::{self, Connection};
+use nats::{self, Connection, Subscription};
 
 #[derive(Clone)]
 pub struct NatsClient {
@@ -63,9 +63,12 @@ impl NatsClient {
         }
     }
 
-    pub fn subscribe(&self, topic: String) -> Result<()> {
+    pub fn subscribe(&self, subject: String) -> Result<Subscription> {
         if let Some(c) = &self.client {
-            let sub = c.subscribe(topic.as_str())?;
+            match c.subscribe(subject.as_str()) {
+                Ok(sub) => return Ok(sub),
+                Err(err) => bail!("Cannot subscribe. {}", err),
+            }
         }
         bail!("no connection")
     }

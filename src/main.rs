@@ -16,7 +16,7 @@ use tui::backend::CrosstermBackend;
 use tui::Terminal;
 
 fn main() -> Result<()> {
-    let app = App::new(crate_name!())
+    let config = App::new(crate_name!())
         .author(crate_authors!())
         .about(crate_description!())
         .version(crate_version!())
@@ -26,13 +26,19 @@ fn main() -> Result<()> {
                 .short("n")
                 .long("nats-url")
                 .default_value("nats://localhost:4222"),
-        );
-
-    let config = app.get_matches();
+        )
+        .arg(
+            Arg::with_name("subject")
+                .help("subscription subject")
+                .short("s")
+                .long("subject")
+                .takes_value(true)
+                .required(true),
+        )
+        .get_matches();
 
     let nats_url = config.value_of("nats-url").unwrap();
-
-    println!("{}", nats_url);
+    let subject = config.value_of("subject").unwrap();
 
     // initialize terminal
     setup_terminal()?;
@@ -44,7 +50,7 @@ fn main() -> Result<()> {
     let mut terminal = Terminal::new(backend)?;
 
     // start terminal
-    let mut app = Application::new(nats_url);
+    let mut app = Application::new(nats_url, subject);
     app.draw(&mut terminal)?;
 
     Ok(())

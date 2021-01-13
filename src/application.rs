@@ -18,7 +18,7 @@ enum InputMode {
 pub struct Application {
     left_chunk: Vec<Rect>,
     input_nats_url: String,
-    input_test_1: String,
+    input_subject: String,
     input_test_2: String,
     input_index: u16,
     input_mode: InputMode,
@@ -26,11 +26,11 @@ pub struct Application {
 }
 
 impl Application {
-    pub fn new(nats_url: &str) -> Self {
+    pub fn new(nats_url: &str, subject: &str) -> Self {
         Self {
             left_chunk: Vec::new(),
             input_nats_url: nats_url.to_string(),
-            input_test_1: String::new(),
+            input_subject: subject.to_string(),
             input_test_2: String::new(),
             input_index: 0,
             input_mode: InputMode::Normal,
@@ -41,7 +41,7 @@ impl Application {
     pub fn draw<B: Backend>(&mut self, terminal: &mut Terminal<B>) -> Result<()> {
         terminal.clear()?;
 
-        let mut events = Events::new(self.input_nats_url.clone());
+        let mut events = Events::new(self.input_nats_url.clone(), self.input_subject.clone());
 
         loop {
             terminal.draw(|f| {
@@ -70,8 +70,8 @@ impl Application {
                 let input_nats_server = Paragraph::new(self.input_nats_url.as_ref())
                     .block(Block::default().borders(Borders::ALL).title("NATS Server"));
 
-                let input_test_1 = Paragraph::new(self.input_test_1.as_ref())
-                    .block(Block::default().borders(Borders::ALL).title("TEST 1"));
+                let input_test_1 = Paragraph::new(self.input_subject.as_ref())
+                    .block(Block::default().borders(Borders::ALL).title("Subject"));
 
                 let input_test_2 = Paragraph::new(self.input_test_2.as_ref())
                     .block(Block::default().borders(Borders::ALL).title("TEST 2"));
@@ -155,7 +155,7 @@ impl Application {
     fn get_input(&mut self) -> &mut String {
         match self.input_index {
             0 => &mut self.input_nats_url,
-            1 => &mut self.input_test_1,
+            1 => &mut self.input_subject,
             2 => &mut self.input_test_2,
             _ => &mut self.input_nats_url,
         }
