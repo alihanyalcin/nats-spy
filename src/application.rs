@@ -4,6 +4,7 @@ use crossterm::event::{Event, KeyCode, KeyEvent};
 use tui::{
     backend::Backend,
     layout::{Constraint, Direction, Layout, Rect},
+    style::{Modifier, Style},
     text::{Span, Spans},
     widgets::{Block, Borders, List, ListItem, Paragraph},
     Frame, Terminal,
@@ -23,6 +24,7 @@ pub struct Application {
     input_index: u16,
     input_mode: InputMode,
     logs: Vec<String>,
+    messages: Vec<String>,
 }
 
 impl Application {
@@ -35,6 +37,7 @@ impl Application {
             input_index: 0,
             input_mode: InputMode::Normal,
             logs: Vec::new(),
+            messages: Vec::new(),
         }
     }
 
@@ -97,7 +100,22 @@ impl Application {
 
                 // right chunk
                 let right_chunk = Block::default().title("Right Chunk").borders(Borders::ALL);
-                f.render_widget(right_chunk, chunks[1]);
+
+                let messages: Vec<ListItem> = self
+                    .messages
+                    .iter()
+                    .enumerate()
+                    .map(|(_i, m)| {
+                        let msg = Spans::from(vec![Span::raw(m)]);
+
+                        ListItem::new(vec![msg, Spans::from("-".repeat(chunks[1].width as usize))])
+                    })
+                    .collect();
+
+                let messages = List::new(messages)
+                    .block(Block::default().borders(Borders::ALL).title("Messages"));
+
+                f.render_widget(messages, chunks[1]);
 
                 match self.input_mode {
                     InputMode::Normal => {}
@@ -139,6 +157,7 @@ impl Application {
                     }
                 }
                 InputEvent::Logs(log) => self.logs.push(log),
+                InputEvent::Messages(msg) => self.messages.push(msg),
             }
         }
 

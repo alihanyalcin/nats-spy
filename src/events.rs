@@ -8,6 +8,7 @@ use std::thread;
 pub enum InputEvent {
     Input(Event),
     Logs(String),
+    Messages(String),
 }
 
 pub struct Events {
@@ -62,7 +63,13 @@ impl Events {
             };
 
             for msg in sub.messages() {
-                println!("{:?} - {:?}", msg.subject, msg.data)
+                tx_log
+                    .send(InputEvent::Messages(format!(
+                        "{} -> {}",
+                        msg.subject,
+                        std::str::from_utf8(&msg.data).unwrap()
+                    )))
+                    .unwrap()
             }
         });
 
