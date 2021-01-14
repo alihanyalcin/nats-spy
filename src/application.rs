@@ -3,10 +3,10 @@ use anyhow::Result;
 use crossterm::event::{Event, KeyCode, KeyEvent};
 use tui::{
     backend::Backend,
-    layout::{Constraint, Direction, Layout, Rect},
+    layout::{Alignment, Constraint, Direction, Layout, Rect},
     style::{Color, Modifier, Style},
-    text::{Span, Spans, Text},
-    widgets::{Block, Borders, List, ListItem, Paragraph},
+    text::{Span, Spans},
+    widgets::{Block, Borders, Paragraph, Wrap},
     Frame, Terminal,
 };
 use tui_logger::TuiLoggerWidget;
@@ -106,7 +106,6 @@ impl Application {
                     .block(
                         Block::default()
                             .title("Logs")
-                            //.title_style(Style::default().fg(Color::White).bg(Color::Black))
                             .border_style(Style::default().fg(Color::White).bg(Color::Black))
                             .borders(Borders::ALL),
                     )
@@ -120,21 +119,32 @@ impl Application {
                 f.render_widget(logs, left_chunk[4]);
 
                 // right chunk
-                let messages: Vec<ListItem> = self
+                let messages = self
                     .messages
                     .iter()
                     .enumerate()
                     .rev()
                     .map(|(i, m)| {
-                        let msg = Spans::from(vec![Span::raw(format!("[#{}]: {}", i, m))]);
-
-                        ListItem::new(vec![msg, Spans::from("-".repeat(chunks[1].width as usize))])
+                        Spans::from(vec![
+                            Span::styled(
+                                format!("[#{}]:", i),
+                                Style::default()
+                                    .fg(Color::Yellow)
+                                    .add_modifier(Modifier::BOLD),
+                            ),
+                            Span::raw(format!("{}", m)),
+                        ])
                     })
-                    .collect();
+                    .collect::<Vec<_>>();
 
-                let messages = List::new(messages)
-                    .block(Block::default().borders(Borders::ALL).title("Messages"))
-                    .style(Style::default().fg(Color::White));
+                let messages = Paragraph::new(messages)
+                    .block(Block::default().borders(Borders::ALL).title(Span::styled(
+                        "Messages",
+                        Style::default().add_modifier(Modifier::BOLD),
+                    )))
+                    .style(Style::default().fg(Color::White))
+                    .alignment(Alignment::Left)
+                    .wrap(Wrap { trim: false });
 
                 f.render_widget(messages, chunks[1]);
 
