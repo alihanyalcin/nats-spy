@@ -4,8 +4,8 @@ use crossterm::event::{Event, KeyCode, KeyEvent};
 use tui::{
     backend::Backend,
     layout::{Constraint, Direction, Layout, Rect},
-    style::{Color, Style},
-    text::{Span, Spans},
+    style::{Color, Modifier, Style},
+    text::{Span, Spans, Text},
     widgets::{Block, Borders, List, ListItem, Paragraph},
     Frame, Terminal,
 };
@@ -78,17 +78,29 @@ impl Application {
                 let input_subject = Paragraph::new(self.input_sub_subject.as_ref())
                     .block(Block::default().borders(Borders::ALL).title("Subject"));
 
-                let input_pub_subject = Paragraph::new(self.input_pub_subject.as_ref()).block(
-                    Block::default()
-                        .borders(Borders::ALL)
-                        .title("Puslish Subject"),
-                );
+                let input_pub_subject = Paragraph::new(self.input_pub_subject.as_ref())
+                    .block(
+                        Block::default()
+                            .borders(Borders::ALL)
+                            .title("Puslish Subject"),
+                    )
+                    .style(
+                        Style::default()
+                            .fg(Color::White)
+                            .add_modifier(Modifier::BOLD),
+                    );
 
-                let input_pub_message = Paragraph::new(self.input_pub_message.as_ref()).block(
-                    Block::default()
-                        .borders(Borders::ALL)
-                        .title("Publish Message"),
-                );
+                let input_pub_message = Paragraph::new(self.input_pub_message.as_ref())
+                    .block(
+                        Block::default()
+                            .borders(Borders::ALL)
+                            .title("Publish Message"),
+                    )
+                    .style(
+                        Style::default()
+                            .fg(Color::White)
+                            .add_modifier(Modifier::BOLD),
+                    );
 
                 let logs: TuiLoggerWidget = TuiLoggerWidget::default()
                     .block(
@@ -121,7 +133,8 @@ impl Application {
                     .collect();
 
                 let messages = List::new(messages)
-                    .block(Block::default().borders(Borders::ALL).title("Messages"));
+                    .block(Block::default().borders(Borders::ALL).title("Messages"))
+                    .style(Style::default().fg(Color::White));
 
                 f.render_widget(messages, chunks[1]);
 
