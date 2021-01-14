@@ -1,4 +1,5 @@
 use anyhow::{bail, Result};
+use log::{info, warn};
 use nats::{self, Connection, Subscription};
 
 #[derive(Clone)]
@@ -49,6 +50,9 @@ impl NatsClient {
             }
         }
         .with_name("nats-spy")
+        .disconnect_callback(|| warn!("disconnect"))
+        .reconnect_callback(|| info!("reconnect"))
+        .max_reconnects(10)
         .connect(self.host.as_str())?;
 
         self.client = Some(client);

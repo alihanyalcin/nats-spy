@@ -4,11 +4,12 @@ use crossterm::event::{Event, KeyCode, KeyEvent};
 use tui::{
     backend::Backend,
     layout::{Constraint, Direction, Layout, Rect},
-    style::{Modifier, Style},
+    style::{Color, Style},
     text::{Span, Spans},
     widgets::{Block, Borders, List, ListItem, Paragraph},
     Frame, Terminal,
 };
+use tui_logger::TuiLoggerWidget;
 use unicode_width::UnicodeWidthStr;
 
 enum InputMode {
@@ -24,7 +25,6 @@ pub struct Application {
     input_pub_message: String,
     input_index: u16,
     input_mode: InputMode,
-    logs: Vec<String>,
     messages: Vec<String>,
 }
 
@@ -38,7 +38,6 @@ impl Application {
             input_pub_message: String::new(),
             input_index: 2,
             input_mode: InputMode::Normal,
-            logs: Vec::new(),
             messages: Vec::new(),
         }
     }
@@ -91,23 +90,15 @@ impl Application {
                         .title("Publish Message"),
                 );
 
-                let logs: Vec<ListItem> = self
-                    .logs
-                    .iter()
-                    .enumerate()
-                    .rev()
-                    .map(|(i, m)| {
-                        let logs = Spans::from(vec![Span::raw(format!("[#{}]: {}", i, m))]);
-
-                        ListItem::new(vec![
-                            logs,
-                            Spans::from("-".repeat(chunks[1].width as usize)),
-                        ])
-                    })
-                    .collect();
-
-                let logs =
-                    List::new(logs).block(Block::default().borders(Borders::ALL).title("Logs"));
+                let logs: TuiLoggerWidget = TuiLoggerWidget::default()
+                    .block(
+                        Block::default()
+                            .title("Logs")
+                            //.title_style(Style::default().fg(Color::White).bg(Color::Black))
+                            .border_style(Style::default().fg(Color::White).bg(Color::Black))
+                            .borders(Borders::ALL),
+                    )
+                    .style(Style::default().fg(Color::White).bg(Color::Black));
 
                 // render left chunk widgets
                 f.render_widget(input_nats_server, left_chunk[0]);
@@ -177,8 +168,8 @@ impl Application {
                         }
                     }
                 }
-                InputEvent::Logs(log) => self.logs.push(log),
                 InputEvent::Messages(msg) => self.messages.push(msg),
+                InputEvent::Tick => continue,
             }
         }
 

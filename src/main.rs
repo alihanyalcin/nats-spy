@@ -13,8 +13,12 @@ use scopeguard::defer;
 use std::io;
 use tui::backend::CrosstermBackend;
 use tui::Terminal;
+use tui_logger::{init_logger, set_default_level};
 
 fn main() -> Result<()> {
+    init_logger(log::LevelFilter::Info).unwrap();
+    set_default_level(log::LevelFilter::Info);
+
     let config = App::new(crate_name!())
         .author(crate_authors!())
         .about(crate_description!())

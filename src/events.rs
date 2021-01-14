@@ -1,20 +1,21 @@
 use crate::nats::NatsClient;
 use anyhow::Result;
 use crossterm::event::{read, Event};
-use std::sync::mpsc::{channel, Receiver, RecvError, Sender};
+use log::{error, info};
+use std::sync::mpsc::{channel, Receiver, RecvError};
 use std::sync::{Arc, Mutex};
 use std::thread;
+use std::time::Duration;
 
 #[derive(Clone)]
 pub enum InputEvent {
     Input(Event),
-    Logs(String),
     Messages(String),
+    Tick,
 }
 
 pub struct Events {
     rx: Receiver<InputEvent>,
-    tx: Sender<InputEvent>,
     nats_client: Arc<Mutex<NatsClient>>,
 }
 
@@ -32,27 +33,26 @@ impl Events {
             }
         });
 
-        let nats_client = Arc::new(Mutex::new(NatsClient::new(nats_url, None, None, None)));
+        let tx_tick = tx.clone();
+        thread::spawn(move || loop {
+            if let Err(err) = tx_tick.send(InputEvent::Tick) {
+                eprintln!("{}", err);
+                return;
+            }
+            thread::sleep(Duration::from_millis(250));
+        });
 
+        let nats_client = Arc::new(Mutex::new(NatsClient::new(nats_url, None, None, None)));
         let nc = nats_client.clone();
         let tx_log = tx.clone();
         thread::spawn(move || {
-            tx_log
-                .send(InputEvent::Logs(
-                    "Trying to connect NATS Server...".to_string(),
-                ))
-                .unwrap();
+            info!("Trying to connect NATS Server...");
 
             let mut nc = nc.lock().unwrap();
             match nc.connect() {
-                Ok(_) => tx_log
-                    .send(InputEvent::Logs("Connected to NATS Server".to_string()))
-                    .unwrap(),
+                Ok(_) => info!("Connected to NATS Server"),
                 Err(err) => {
-                    tx_log
-                        .send(InputEvent::Logs(format!("Not connected. {}", err)))
-                        .unwrap();
-
+                    error!("Not connected. {}", err);
                     return;
                 }
             }
@@ -60,7 +60,7 @@ impl Events {
             let sub = match nc.subscribe(subject) {
                 Ok(sub) => sub,
                 Err(err) => {
-                    tx_log.send(InputEvent::Logs(err.to_string())).unwrap();
+                    error!("{}", err);
                     return;
                 }
             };
@@ -77,11 +77,7 @@ impl Events {
             }
         });
 
-        Events {
-            rx,
-            tx,
-            nats_client,
-        }
+        Events { rx, nats_client }
     }
 
     pub fn next(&self) -> Result<InputEvent, RecvError> {
@@ -90,20 +86,8 @@ impl Events {
 
     pub fn publish(&self, sub: String, msg: String) {
         match self.nats_client.lock().unwrap().publish(sub.clone(), msg) {
-            Ok(_) => self
-                .tx
-                .send(InputEvent::Logs(format!(
-                    "Message send to subject '{}'",
-                    sub.clone()
-                )))
-                .unwrap(),
-            Err(err) => self
-                .tx
-                .send(InputEvent::Logs(format!(
-                    "Message cannot send to subject '{}'. {}",
-                    sub, err
-                )))
-                .unwrap(),
+            Ok(_) => info!("Message send to subject '{}'", sub.clone()),
+            Err(err) => error!("Message cannot send to subject '{}'. {}", sub, err),
         }
     }
 

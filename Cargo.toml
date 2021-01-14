@@ -7,8 +7,8 @@ edition = "2018"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-crossterm = { version = "0.19", features = ["event-stream"] }
-tui = { version = "0.14", default-features = false, features = ['crossterm'] }
+crossterm = { version = "0.18", features = ["event-stream"] }
+tui = { version = "0.12", default-features = false, features = ['crossterm'] }
 anyhow = "1.0.37"
 clap = "2.33.3"
 log = "0.4.11"
@@ -17,3 +17,4 @@ scopeguard = "1.1.0"
 tokio = { version = "1.0.1", features = ["sync", "rt"] }
 unicode-width = "0.1.8"
 nats = "0.9.1"
+tui-logger = { version = "0.4", default-features = false, features = ["tui-crossterm"] }
