@@ -55,6 +55,12 @@ fn main() -> Result<()> {
                 .short("t")
                 .long("token"),
         )
+        .arg(
+            Arg::with_name("credentials")
+                .help("nats credentials")
+                .short("c")
+                .long("credentials"),
+        )
         .get_matches();
 
     let nats_url = config.value_of("nats-url").unwrap();
@@ -62,6 +68,7 @@ fn main() -> Result<()> {
     let username = config.value_of("username");
     let password = config.value_of("password");
     let token = config.value_of("token");
+    let credentials = config.value_of("credentials");
 
     // initialize terminal
     setup_terminal()?;
@@ -79,6 +86,7 @@ fn main() -> Result<()> {
         username.map(str::to_string),
         password.map(str::to_string),
         token.map(str::to_string),
+        credentials.map(str::to_string),
     );
     app.draw(&mut terminal)?;
 

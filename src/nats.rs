@@ -8,6 +8,7 @@ pub struct NatsClient {
     username: Option<String>,
     password: Option<String>,
     token: Option<String>,
+    credentials: Option<String>,
     client: Option<Connection>,
     status: ConnectionStatus,
 }
@@ -24,12 +25,14 @@ impl NatsClient {
         username: Option<String>,
         password: Option<String>,
         token: Option<String>,
+        credentials: Option<String>,
     ) -> Self {
         Self {
             host,
             username,
             password,
             token,
+            credentials,
             client: None,
             status: ConnectionStatus::Disconnected,
         }
@@ -41,11 +44,16 @@ impl NatsClient {
         }
 
         let client = {
-            match ((&self.username, &self.password), &self.token) {
-                ((Some(username), Some(password)), _) => {
+            match (
+                (&self.username, &self.password),
+                &self.token,
+                &self.credentials,
+            ) {
+                ((Some(username), Some(password)), _, _) => {
                     nats::Options::with_user_pass(username.as_str(), password.as_str())
                 }
-                (_, Some(token)) => nats::Options::with_token(token.as_str()),
+                (_, Some(token), _) => nats::Options::with_token(token.as_str()),
+                (_, _, Some(credentials)) => nats::Options::with_credentials(credentials),
                 _ => nats::Options::new(),
             }
         }

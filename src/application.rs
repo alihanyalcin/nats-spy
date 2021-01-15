@@ -26,6 +26,7 @@ pub struct Application {
     input_username: Option<String>,
     input_password: Option<String>,
     input_token: Option<String>,
+    input_credentials: Option<String>,
     input_index: u16,
     input_mode: InputMode,
     messages: Vec<String>,
@@ -38,6 +39,7 @@ impl Application {
         username: Option<String>,
         password: Option<String>,
         token: Option<String>,
+        credentials: Option<String>,
     ) -> Self {
         Self {
             left_chunk: Vec::new(),
@@ -48,6 +50,7 @@ impl Application {
             input_username: username,
             input_password: password,
             input_token: token,
+            input_credentials: credentials,
             input_index: 0,
             input_mode: InputMode::Normal,
             messages: Vec::new(),
@@ -63,6 +66,7 @@ impl Application {
             self.input_username.clone(),
             self.input_password.clone(),
             self.input_token.clone(),
+            self.input_credentials.clone(),
         );
 
         loop {

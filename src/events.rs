@@ -26,6 +26,7 @@ impl Events {
         username: Option<String>,
         password: Option<String>,
         token: Option<String>,
+        credentials: Option<String>,
     ) -> Events {
         let (tx, rx) = channel();
 
@@ -49,7 +50,11 @@ impl Events {
         });
 
         let nats_client = Arc::new(Mutex::new(NatsClient::new(
-            nats_url, username, password, token,
+            nats_url,
+            username,
+            password,
+            token,
+            credentials,
         )));
         let nc = nats_client.clone();
         let tx_message = tx.clone();
