@@ -20,7 +20,13 @@ pub struct Events {
 }
 
 impl Events {
-    pub fn new(nats_url: String, subject: String) -> Events {
+    pub fn new(
+        nats_url: String,
+        subject: String,
+        username: Option<String>,
+        password: Option<String>,
+        token: Option<String>,
+    ) -> Events {
         let (tx, rx) = channel();
 
         let tx_keyboard = tx.clone();
@@ -42,9 +48,11 @@ impl Events {
             thread::sleep(Duration::from_millis(250));
         });
 
-        let nats_client = Arc::new(Mutex::new(NatsClient::new(nats_url, None, None, None)));
+        let nats_client = Arc::new(Mutex::new(NatsClient::new(
+            nats_url, username, password, token,
+        )));
         let nc = nats_client.clone();
-        let tx_log = tx.clone();
+        let tx_message = tx.clone();
         thread::spawn(move || {
             info!("Trying to connect NATS Server...");
 
@@ -67,7 +75,7 @@ impl Events {
             drop(nc);
 
             for msg in sub.messages() {
-                tx_log
+                tx_message
                     .send(InputEvent::Messages(format!(
                         "[{}] -> {}",
                         msg.subject,

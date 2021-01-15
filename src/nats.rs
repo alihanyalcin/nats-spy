@@ -21,9 +21,9 @@ enum ConnectionStatus {
 impl NatsClient {
     pub fn new(
         host: String,
-        token: Option<String>,
         username: Option<String>,
         password: Option<String>,
+        token: Option<String>,
     ) -> Self {
         Self {
             host,
@@ -50,8 +50,8 @@ impl NatsClient {
             }
         }
         .with_name("nats-spy")
-        .disconnect_callback(|| warn!("disconnect"))
-        .reconnect_callback(|| info!("reconnect"))
+        .disconnect_callback(|| warn!("Connecction has been lost"))
+        .reconnect_callback(|| info!("Connection has been reestablished"))
         .max_reconnects(10)
         .connect(self.host.as_str())?;
 

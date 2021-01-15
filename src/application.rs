@@ -23,20 +23,32 @@ pub struct Application {
     input_sub_subject: String,
     input_pub_subject: String,
     input_pub_message: String,
+    input_username: Option<String>,
+    input_password: Option<String>,
+    input_token: Option<String>,
     input_index: u16,
     input_mode: InputMode,
     messages: Vec<String>,
 }
 
 impl Application {
-    pub fn new(nats_url: &str, subject: &str) -> Self {
+    pub fn new(
+        nats_url: String,
+        subject: String,
+        username: Option<String>,
+        password: Option<String>,
+        token: Option<String>,
+    ) -> Self {
         Self {
             left_chunk: Vec::new(),
-            input_nats_url: nats_url.to_string(),
-            input_sub_subject: subject.to_string(),
+            input_nats_url: nats_url,
+            input_sub_subject: subject,
             input_pub_subject: String::new(),
             input_pub_message: String::new(),
-            input_index: 2,
+            input_username: username,
+            input_password: password,
+            input_token: token,
+            input_index: 0,
             input_mode: InputMode::Normal,
             messages: Vec::new(),
         }
@@ -45,7 +57,13 @@ impl Application {
     pub fn draw<B: Backend>(&mut self, terminal: &mut Terminal<B>) -> Result<()> {
         terminal.clear()?;
 
-        let mut events = Events::new(self.input_nats_url.clone(), self.input_sub_subject.clone());
+        let mut events = Events::new(
+            self.input_nats_url.clone(),
+            self.input_sub_subject.clone(),
+            self.input_username.clone(),
+            self.input_password.clone(),
+            self.input_token.clone(),
+        );
 
         loop {
             terminal.draw(|f| {

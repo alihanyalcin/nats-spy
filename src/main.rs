@@ -37,10 +37,31 @@ fn main() -> Result<()> {
                 .long("subject")
                 .default_value(">"),
         )
+        .arg(
+            Arg::with_name("username")
+                .help("nats username")
+                .short("u")
+                .long("username"),
+        )
+        .arg(
+            Arg::with_name("password")
+                .help("nats password")
+                .short("p")
+                .long("password"),
+        )
+        .arg(
+            Arg::with_name("token")
+                .help("nats token")
+                .short("t")
+                .long("token"),
+        )
         .get_matches();
 
     let nats_url = config.value_of("nats-url").unwrap();
     let subject = config.value_of("subject").unwrap();
+    let username = config.value_of("username");
+    let password = config.value_of("password");
+    let token = config.value_of("token");
 
     // initialize terminal
     setup_terminal()?;
@@ -52,7 +73,13 @@ fn main() -> Result<()> {
     let mut terminal = Terminal::new(backend)?;
 
     // start terminal
-    let mut app = Application::new(nats_url, subject);
+    let mut app = Application::new(
+        nats_url.to_string(),
+        subject.to_string(),
+        username.map(str::to_string),
+        password.map(str::to_string),
+        token.map(str::to_string),
+    );
     app.draw(&mut terminal)?;
 
     Ok(())
