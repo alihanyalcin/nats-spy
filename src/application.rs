@@ -87,6 +87,7 @@ impl Application {
                             Constraint::Length(3),
                             Constraint::Length(3),
                             Constraint::Percentage(50),
+                            Constraint::Percentage(50),
                         ]
                         .as_ref(),
                     )
@@ -104,7 +105,7 @@ impl Application {
                     .block(
                         Block::default()
                             .borders(Borders::ALL)
-                            .title("Puslish Subject"),
+                            .title("Publish Subject"),
                     )
                     .style(
                         Style::default()
@@ -125,13 +126,66 @@ impl Application {
                     );
 
                 let logs: TuiLoggerWidget = TuiLoggerWidget::default()
-                    .block(
-                        Block::default()
-                            .title("Logs")
-                            .border_style(Style::default().fg(Color::White).bg(Color::Black))
-                            .borders(Borders::ALL),
-                    )
-                    .style(Style::default().fg(Color::White).bg(Color::Black));
+                    .block(Block::default().title("Logs").borders(Borders::ALL));
+
+                let help = match self.input_mode {
+                    InputMode::Normal => {
+                        vec![
+                            Spans::from(vec![
+                                Span::raw("Press "),
+                                Span::styled(
+                                    "ESC",
+                                    Style::default().add_modifier(Modifier::BOLD).fg(Color::Red),
+                                ),
+                                Span::raw(" to exit, "),
+                                Span::styled(
+                                    "ENTER",
+                                    Style::default()
+                                        .add_modifier(Modifier::BOLD)
+                                        .fg(Color::Blue),
+                                ),
+                                Span::raw(" to start editing."),
+                            ]),
+                            Spans::from(vec![
+                                Span::raw("Press "),
+                                Span::styled(
+                                    "P",
+                                    Style::default()
+                                        .add_modifier(Modifier::BOLD)
+                                        .fg(Color::Cyan),
+                                ),
+                                Span::raw(" to publish a message."),
+                            ]),
+                        ]
+                    }
+                    InputMode::Editing => {
+                        vec![
+                            Spans::from(vec![
+                                Span::raw("Press "),
+                                Span::styled(
+                                    "ENTER",
+                                    Style::default()
+                                        .add_modifier(Modifier::BOLD)
+                                        .fg(Color::Blue),
+                                ),
+                                Span::raw(" to stop editing."),
+                            ]),
+                            Spans::from(vec![
+                                Span::raw("Press "),
+                                Span::styled(
+                                    "TAB",
+                                    Style::default()
+                                        .add_modifier(Modifier::BOLD)
+                                        .fg(Color::Magenta),
+                                ),
+                                Span::raw(" to move cursor."),
+                            ]),
+                        ]
+                    }
+                };
+
+                let help_message = Paragraph::new(help)
+                    .block(Block::default().borders(Borders::ALL).title("Help"));
 
                 // render left chunk widgets
                 f.render_widget(input_nats_server, left_chunk[0]);
@@ -139,6 +193,7 @@ impl Application {
                 f.render_widget(input_pub_subject, left_chunk[2]);
                 f.render_widget(input_pub_message, left_chunk[3]);
                 f.render_widget(logs, left_chunk[4]);
+                f.render_widget(help_message, left_chunk[5]);
 
                 // right chunk
                 let messages = self
