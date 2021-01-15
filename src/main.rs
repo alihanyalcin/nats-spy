@@ -25,39 +25,39 @@ fn main() -> Result<()> {
         .version(crate_version!())
         .arg(
             Arg::with_name("nats-url")
-                .help("nats url")
+                .help("NATS Server to establish a connection.")
                 .short("n")
                 .long("nats-url")
                 .default_value("nats://localhost:4222"),
         )
         .arg(
             Arg::with_name("subject")
-                .help("subscription subject")
+                .help("Subscription subject for the given NATS connection.")
                 .short("s")
                 .long("subject")
                 .default_value(">"),
         )
         .arg(
             Arg::with_name("username")
-                .help("nats username")
+                .help("Authenticate with NATS using a username and password.")
                 .short("u")
                 .long("username"),
         )
         .arg(
             Arg::with_name("password")
-                .help("nats password")
+                .help("Authenticate with NATS using a username and password.")
                 .short("p")
                 .long("password"),
         )
         .arg(
             Arg::with_name("token")
-                .help("nats token")
+                .help("Authenticate with NATS using a token.")
                 .short("t")
                 .long("token"),
         )
         .arg(
             Arg::with_name("credentials")
-                .help("nats credentials")
+                .help("Authenticate with NATS using a .creds file.")
                 .short("c")
                 .long("credentials"),
         )

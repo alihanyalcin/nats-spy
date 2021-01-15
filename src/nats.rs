@@ -4,7 +4,7 @@ use nats::{self, Connection, Subscription};
 
 #[derive(Clone)]
 pub struct NatsClient {
-    host: String,
+    url: String,
     username: Option<String>,
     password: Option<String>,
     token: Option<String>,
@@ -28,7 +28,7 @@ impl NatsClient {
         credentials: Option<String>,
     ) -> Self {
         Self {
-            host,
+            url: host,
             username,
             password,
             token,
@@ -53,7 +53,7 @@ impl NatsClient {
                     nats::Options::with_user_pass(username.as_str(), password.as_str())
                 }
                 (_, Some(token), _) => nats::Options::with_token(token.as_str()),
-                (_, _, Some(credentials)) => nats::Options::with_credentials(credentials),
+                (_, _, Some(credentials)) => nats::Options::with_credentials(credentials.as_str()),
                 _ => nats::Options::new(),
             }
         }
@@ -61,7 +61,7 @@ impl NatsClient {
         .disconnect_callback(|| warn!("Connecction has been lost"))
         .reconnect_callback(|| info!("Connection has been reestablished"))
         .max_reconnects(10)
-        .connect(self.host.as_str())?;
+        .connect(self.url.as_str())?;
 
         self.client = Some(client);
         self.status = ConnectionStatus::Connected;
