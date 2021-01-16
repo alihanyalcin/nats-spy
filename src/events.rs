@@ -30,6 +30,7 @@ impl Events {
     ) -> Events {
         let (tx, rx) = channel();
 
+        // listen keyboard events
         let tx_keyboard = tx.clone();
         thread::spawn(move || loop {
             if let Ok(key) = read() {
@@ -40,13 +41,14 @@ impl Events {
             }
         });
 
+        // start ticker event
         let tx_tick = tx.clone();
         thread::spawn(move || loop {
             if let Err(err) = tx_tick.send(InputEvent::Tick) {
                 eprintln!("{}", err);
                 return;
             }
-            thread::sleep(Duration::from_millis(250));
+            thread::sleep(Duration::from_millis(200));
         });
 
         let nats_client = Arc::new(Mutex::new(NatsClient::new(
@@ -56,20 +58,24 @@ impl Events {
             token,
             credentials,
         )));
+
+        // start nats client and listen
         let nc = nats_client.clone();
         let tx_message = tx.clone();
         thread::spawn(move || {
             info!("Trying to connect NATS Server...");
 
+            // connect nats server
             let mut nc = nc.lock().unwrap();
             match nc.connect() {
                 Ok(_) => info!("Connected to NATS Server"),
                 Err(err) => {
-                    error!("Not connected. {}", err);
+                    error!("Cannot connected. {}", err);
                     return;
                 }
             }
 
+            // subscribe subject
             let sub = match nc.subscribe(subject) {
                 Ok(sub) => sub,
                 Err(err) => {
@@ -79,6 +85,7 @@ impl Events {
             };
             drop(nc);
 
+            // listen new messages
             for msg in sub.messages() {
                 tx_message
                     .send(InputEvent::Messages(format!(
@@ -98,6 +105,7 @@ impl Events {
     }
 
     pub fn publish(&self, sub: String, msg: String) {
+        // publish nats message
         match self.nats_client.lock().unwrap().publish(sub.clone(), msg) {
             Ok(_) => info!("Message send to subject '{}'", sub.clone()),
             Err(err) => error!("Message cannot send to subject '{}'. {}", sub, err),

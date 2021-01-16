@@ -10,13 +10,6 @@ pub struct NatsClient {
     token: Option<String>,
     credentials: Option<String>,
     client: Option<Connection>,
-    status: ConnectionStatus,
-}
-
-#[derive(Clone)]
-enum ConnectionStatus {
-    Connected,
-    Disconnected,
 }
 
 impl NatsClient {
@@ -34,15 +27,10 @@ impl NatsClient {
             token,
             credentials,
             client: None,
-            status: ConnectionStatus::Disconnected,
         }
     }
 
     pub fn connect(&mut self) -> Result<()> {
-        if let ConnectionStatus::Connected = self.status {
-            bail!("Already connected.")
-        }
-
         let client = {
             match (
                 (&self.username, &self.password),
@@ -64,7 +52,6 @@ impl NatsClient {
         .connect(self.url.as_str())?;
 
         self.client = Some(client);
-        self.status = ConnectionStatus::Connected;
 
         Ok(())
     }
@@ -82,18 +69,17 @@ impl NatsClient {
                 Err(err) => bail!("Cannot subscribe. {}", err),
             }
         }
-        bail!("no connection")
+        bail!("Connection cannot established")
     }
 
     pub fn publish(&self, subject: String, message: String) -> Result<()> {
-        if subject.is_empty() {
-            bail!("Subject is empty")
-        }
-
         if let Some(c) = &self.client {
+            if subject.is_empty() {
+                bail!("Subject is empty")
+            }
             c.publish(subject.as_str(), message)?
         } else {
-            bail!("no connection")
+            bail!("Connection cannot established")
         }
 
         Ok(())
