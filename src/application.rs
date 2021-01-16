@@ -22,6 +22,8 @@ pub struct Application {
     input_sub_subject: String,
     input_pub_subject: String,
     input_pub_message: String,
+    input_req_subject: String,
+    input_req_message: String,
     input_username: Option<String>,
     input_password: Option<String>,
     input_token: Option<String>,
@@ -45,6 +47,8 @@ impl Application {
             input_sub_subject: subject,
             input_pub_subject: String::new(),
             input_pub_message: String::new(),
+            input_req_subject: String::new(),
+            input_req_message: String::new(),
             input_username: username,
             input_password: password,
             input_token: token,
@@ -96,6 +100,10 @@ impl Application {
                                     self.input_pub_subject.clone(),
                                     self.input_pub_message.clone(),
                                 ),
+                                KeyCode::Char('r') => events.request(
+                                    self.input_req_subject.clone(),
+                                    self.input_req_message.clone(),
+                                ),
                                 _ => {}
                             },
                             InputMode::Editing => match code {
@@ -109,7 +117,7 @@ impl Application {
                                     self.get_input().pop();
                                 }
                                 KeyCode::Tab => {
-                                    self.input_index = (self.input_index + 1) % 4;
+                                    self.input_index = (self.input_index + 1) % 6;
                                 }
                                 _ => {}
                             },
@@ -166,8 +174,10 @@ impl Application {
                     Constraint::Length(3),
                     Constraint::Length(3),
                     Constraint::Length(3),
-                    Constraint::Percentage(50),
-                    Constraint::Percentage(50),
+                    Constraint::Length(3),
+                    Constraint::Length(3),
+                    Constraint::Percentage(30),
+                    Constraint::Percentage(10),
                 ]
                 .as_ref(),
             )
@@ -207,6 +217,32 @@ impl Application {
                     .add_modifier(Modifier::BOLD),
             );
 
+        // nats request subject
+        let input_req_subject = Paragraph::new(self.input_req_subject.as_ref())
+            .block(
+                Block::default()
+                    .borders(Borders::ALL)
+                    .title("Request Subject"),
+            )
+            .style(
+                Style::default()
+                    .fg(Color::White)
+                    .add_modifier(Modifier::BOLD),
+            );
+
+        // nats request message
+        let input_req_message = Paragraph::new(self.input_req_message.as_ref())
+            .block(
+                Block::default()
+                    .borders(Borders::ALL)
+                    .title("Request Message"),
+            )
+            .style(
+                Style::default()
+                    .fg(Color::White)
+                    .add_modifier(Modifier::BOLD),
+            );
+
         // log widget
         let logs: TuiLoggerWidget =
             TuiLoggerWidget::default().block(Block::default().title("Logs").borders(Borders::ALL));
@@ -238,7 +274,14 @@ impl Application {
                                 .add_modifier(Modifier::BOLD)
                                 .fg(Color::Cyan),
                         ),
-                        Span::raw(" to publish a message."),
+                        Span::raw(" to publish, "),
+                        Span::styled(
+                            "R",
+                            Style::default()
+                                .add_modifier(Modifier::BOLD)
+                                .fg(Color::LightCyan),
+                        ),
+                        Span::raw(" to request."),
                     ]),
                 ]
             }
@@ -276,8 +319,10 @@ impl Application {
         f.render_widget(input_subject, left_chunk[1]);
         f.render_widget(input_pub_subject, left_chunk[2]);
         f.render_widget(input_pub_message, left_chunk[3]);
-        f.render_widget(logs, left_chunk[4]);
-        f.render_widget(help_message, left_chunk[5]);
+        f.render_widget(input_req_subject, left_chunk[4]);
+        f.render_widget(input_req_message, left_chunk[5]);
+        f.render_widget(logs, left_chunk[6]);
+        f.render_widget(help_message, left_chunk[7]);
 
         // set cursor for editing mode
         match self.input_mode {
@@ -297,6 +342,8 @@ impl Application {
         match self.input_index {
             2 => &mut self.input_pub_subject,
             3 => &mut self.input_pub_message,
+            4 => &mut self.input_req_subject,
+            5 => &mut self.input_req_message,
             _ => {
                 self.input_index = 2;
                 &mut self.input_pub_subject

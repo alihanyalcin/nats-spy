@@ -70,7 +70,7 @@ impl Events {
             match nc.connect() {
                 Ok(_) => info!("Connected to NATS Server"),
                 Err(err) => {
-                    error!("Cannot connected. {}", err);
+                    error!("Cannot connect. {}", err);
                     return;
                 }
             }
@@ -110,6 +110,21 @@ impl Events {
             Ok(_) => info!("Message send to subject '{}'", sub.clone()),
             Err(err) => error!("Message cannot send to subject '{}'. {}", sub, err),
         }
+    }
+
+    pub fn request(&self, sub: String, msg: String) {
+        let nc = self.nats_client.clone();
+        thread::spawn(move || {
+            match nc.lock().unwrap().request(sub, msg) {
+                Ok(resp) => {
+                    // TODO: send it to msg tx
+                    info!("Response: {}", std::str::from_utf8(&resp.data).unwrap())
+                }
+                Err(err) => {
+                    error!("{}", err)
+                }
+            }
+        });
     }
 
     pub fn drain(&mut self) {

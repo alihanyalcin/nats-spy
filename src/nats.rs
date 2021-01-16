@@ -1,6 +1,6 @@
 use anyhow::{bail, Result};
 use log::{info, warn};
-use nats::{self, Connection, Subscription};
+use nats::{self, Connection, Message, Subscription};
 
 #[derive(Clone)]
 pub struct NatsClient {
@@ -83,5 +83,19 @@ impl NatsClient {
         }
 
         Ok(())
+    }
+
+    pub fn request(&self, subject: String, message: String) -> Result<Message> {
+        if let Some(c) = &self.client {
+            if subject.is_empty() {
+                bail!("Subject is empty")
+            }
+            info!("Subject '{}' requested.", subject.clone());
+            match c.request_timeout(subject.as_str(), message, std::time::Duration::from_secs(2)) {
+                Ok(resp) => return Ok(resp),
+                Err(err) => bail!("Request {}", err),
+            }
+        }
+        bail!("Connection cannot established")
     }
 }
