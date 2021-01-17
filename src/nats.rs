@@ -1,62 +1,57 @@
 use anyhow::{bail, Result};
 use log::{info, warn};
-use nats::{self, Connection, Subscription};
+use nats::{self, Connection, Message, Subscription};
 
 #[derive(Clone)]
 pub struct NatsClient {
-    host: String,
+    url: String,
     username: Option<String>,
     password: Option<String>,
     token: Option<String>,
+    credentials: Option<String>,
     client: Option<Connection>,
-    status: ConnectionStatus,
-}
-
-#[derive(Clone)]
-enum ConnectionStatus {
-    Connected,
-    Disconnected,
 }
 
 impl NatsClient {
     pub fn new(
         host: String,
-        token: Option<String>,
         username: Option<String>,
         password: Option<String>,
+        token: Option<String>,
+        credentials: Option<String>,
     ) -> Self {
         Self {
-            host,
+            url: host,
             username,
             password,
             token,
+            credentials,
             client: None,
-            status: ConnectionStatus::Disconnected,
         }
     }
 
     pub fn connect(&mut self) -> Result<()> {
-        if let ConnectionStatus::Connected = self.status {
-            bail!("Already connected.")
-        }
-
         let client = {
-            match ((&self.username, &self.password), &self.token) {
-                ((Some(username), Some(password)), _) => {
+            match (
+                (&self.username, &self.password),
+                &self.token,
+                &self.credentials,
+            ) {
+                ((Some(username), Some(password)), _, _) => {
                     nats::Options::with_user_pass(username.as_str(), password.as_str())
                 }
-                (_, Some(token)) => nats::Options::with_token(token.as_str()),
+                (_, Some(token), _) => nats::Options::with_token(token.as_str()),
+                (_, _, Some(credentials)) => nats::Options::with_credentials(credentials.as_str()),
                 _ => nats::Options::new(),
             }
         }
         .with_name("nats-spy")
-        .disconnect_callback(|| warn!("disconnect"))
-        .reconnect_callback(|| info!("reconnect"))
+        .disconnect_callback(|| warn!("Connecction has been lost"))
+        .reconnect_callback(|| info!("Connection has been reestablished"))
         .max_reconnects(10)
-        .connect(self.host.as_str())?;
+        .connect(self.url.as_str())?;
 
         self.client = Some(client);
-        self.status = ConnectionStatus::Connected;
 
         Ok(())
     }
@@ -74,20 +69,33 @@ impl NatsClient {
                 Err(err) => bail!("Cannot subscribe. {}", err),
             }
         }
-        bail!("no connection")
+        bail!("Connection cannot established")
     }
 
     pub fn publish(&self, subject: String, message: String) -> Result<()> {
-        if subject.is_empty() {
-            bail!("Subject is empty")
-        }
-
         if let Some(c) = &self.client {
+            if subject.is_empty() {
+                bail!("Subject is empty")
+            }
             c.publish(subject.as_str(), message)?
         } else {
-            bail!("no connection")
+            bail!("Connection cannot established")
         }
 
         Ok(())
+    }
+
+    pub fn request(&self, subject: String, message: String) -> Result<Message> {
+        if let Some(c) = &self.client {
+            if subject.is_empty() {
+                bail!("Subject is empty")
+            }
+            info!("Subject '{}' requested.", subject.clone());
+            match c.request_timeout(subject.as_str(), message, std::time::Duration::from_secs(1)) {
+                Ok(resp) => return Ok(resp),
+                Err(err) => bail!("Request {}", err),
+            }
+        }
+        bail!("Connection cannot established")
     }
 }

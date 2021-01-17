@@ -25,22 +25,50 @@ fn main() -> Result<()> {
         .version(crate_version!())
         .arg(
             Arg::with_name("nats-url")
-                .help("nats url")
+                .help("NATS Server to establish a connection.")
                 .short("n")
                 .long("nats-url")
                 .default_value("nats://localhost:4222"),
         )
         .arg(
             Arg::with_name("subject")
-                .help("subscription subject")
+                .help("Subscription subject for the given NATS connection.")
                 .short("s")
                 .long("subject")
                 .default_value(">"),
+        )
+        .arg(
+            Arg::with_name("username")
+                .help("Authenticate with NATS using a username and password.")
+                .short("u")
+                .long("username"),
+        )
+        .arg(
+            Arg::with_name("password")
+                .help("Authenticate with NATS using a username and password.")
+                .short("p")
+                .long("password"),
+        )
+        .arg(
+            Arg::with_name("token")
+                .help("Authenticate with NATS using a token.")
+                .short("t")
+                .long("token"),
+        )
+        .arg(
+            Arg::with_name("credentials")
+                .help("Authenticate with NATS using a .creds file.")
+                .short("c")
+                .long("credentials"),
         )
         .get_matches();
 
     let nats_url = config.value_of("nats-url").unwrap();
     let subject = config.value_of("subject").unwrap();
+    let username = config.value_of("username");
+    let password = config.value_of("password");
+    let token = config.value_of("token");
+    let credentials = config.value_of("credentials");
 
     // initialize terminal
     setup_terminal()?;
@@ -52,7 +80,14 @@ fn main() -> Result<()> {
     let mut terminal = Terminal::new(backend)?;
 
     // start terminal
-    let mut app = Application::new(nats_url, subject);
+    let mut app = Application::new(
+        nats_url.to_string(),
+        subject.to_string(),
+        username.map(str::to_string),
+        password.map(str::to_string),
+        token.map(str::to_string),
+        credentials.map(str::to_string),
+    );
     app.draw(&mut terminal)?;
 
     Ok(())
