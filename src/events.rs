@@ -2,7 +2,7 @@ use crate::nats::NatsClient;
 use anyhow::Result;
 use crossterm::event::{read, Event};
 use log::{error, info};
-use std::sync::mpsc::{channel, Receiver, RecvError};
+use std::sync::mpsc::{channel, Receiver, RecvError, Sender};
 use std::sync::{Arc, Mutex};
 use std::thread;
 use std::time::Duration;
@@ -16,6 +16,7 @@ pub enum InputEvent {
 
 pub struct Events {
     rx: Receiver<InputEvent>,
+    tx: Sender<InputEvent>,
     nats_client: Arc<Mutex<NatsClient>>,
 }
 
@@ -97,7 +98,11 @@ impl Events {
             }
         });
 
-        Events { rx, nats_client }
+        Events {
+            rx,
+            tx,
+            nats_client,
+        }
     }
 
     pub fn next(&self) -> Result<InputEvent, RecvError> {
@@ -108,23 +113,24 @@ impl Events {
         // publish nats message
         match self.nats_client.lock().unwrap().publish(sub.clone(), msg) {
             Ok(_) => info!("Message send to subject '{}'", sub.clone()),
-            Err(err) => error!("Message cannot send to subject '{}'. {}", sub, err),
+            Err(err) => error!("{}", err),
         }
     }
 
     pub fn request(&self, sub: String, msg: String) {
-        let nc = self.nats_client.clone();
-        thread::spawn(move || {
-            match nc.lock().unwrap().request(sub, msg) {
-                Ok(resp) => {
-                    // TODO: send it to msg tx
-                    info!("Response: {}", std::str::from_utf8(&resp.data).unwrap())
-                }
-                Err(err) => {
-                    error!("{}", err)
-                }
+        match self.nats_client.lock().unwrap().request(sub, msg) {
+            Ok(resp) => self
+                .tx
+                .send(InputEvent::Messages(format!(
+                    "[{}] -> {}",
+                    resp.subject,
+                    std::str::from_utf8(&resp.data).unwrap()
+                )))
+                .unwrap(),
+            Err(err) => {
+                error!("{}", err)
             }
-        });
+        }
     }
 
     pub fn drain(&mut self) {

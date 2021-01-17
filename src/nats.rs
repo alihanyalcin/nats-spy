@@ -91,7 +91,7 @@ impl NatsClient {
                 bail!("Subject is empty")
             }
             info!("Subject '{}' requested.", subject.clone());
-            match c.request_timeout(subject.as_str(), message, std::time::Duration::from_secs(2)) {
+            match c.request_timeout(subject.as_str(), message, std::time::Duration::from_secs(1)) {
                 Ok(resp) => return Ok(resp),
                 Err(err) => bail!("Request {}", err),
             }
