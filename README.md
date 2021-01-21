@@ -4,7 +4,7 @@ nats-spy is a terminal tool to help you to monitor NATS messages.
 
 ![](./demo.gif)
 
-#Install
+# Install
 - Homebrew
 ```
 brew install nats-spy
