@@ -31,20 +31,20 @@ fn main() -> Result<()> {
         )
         .arg(
             Arg::with_name("subject")
-                .help("Subscription subject for the given NATS connection.")
+                .help("Subscription subject for NATS connection.")
                 .short("s")
                 .long("subject")
                 .default_value(">"),
         )
         .arg(
             Arg::with_name("username")
-                .help("Authenticate with NATS using a username and password.")
+                .help("Authenticate with NATS using username.")
                 .short("u")
                 .long("username"),
         )
         .arg(
             Arg::with_name("password")
-                .help("Authenticate with NATS using a username and password.")
+                .help("Authenticate with NATS using password.")
                 .short("p")
                 .long("password"),
         )
