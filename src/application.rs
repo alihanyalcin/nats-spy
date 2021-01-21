@@ -1,5 +1,6 @@
 use crate::events::{Events, InputEvent};
 use anyhow::Result;
+use chrono::{offset::Local, Timelike};
 use crossterm::event::{Event, KeyCode, KeyEvent};
 use tui::{
     backend::Backend,
@@ -30,7 +31,7 @@ pub struct Application {
     input_credentials: Option<String>,
     input_index: u16,
     input_mode: InputMode,
-    messages: Vec<String>,
+    messages: Vec<(String, String)>,
 }
 
 impl Application {
@@ -92,7 +93,7 @@ impl Application {
                                 KeyCode::Enter => {
                                     self.input_mode = InputMode::Editing;
                                 }
-                                KeyCode::Esc => {
+                                KeyCode::Char('q') => {
                                     events.drain();
                                     break;
                                 }
@@ -124,7 +125,7 @@ impl Application {
                         }
                     }
                 }
-                InputEvent::Messages(msg) => self.messages.push(msg),
+                InputEvent::Messages(topic, msg) => self.messages.push((topic, msg)),
                 InputEvent::Tick => {}
             }
         }
@@ -139,13 +140,17 @@ impl Application {
             .iter()
             .enumerate()
             .rev()
-            .map(|(i, m)| {
+            .map(|(i, (t, m))| {
                 Spans::from(vec![
                     Span::styled(
-                        format!("[#{}]:", i),
+                        format!("[#{}] ", i),
                         Style::default()
                             .fg(Color::Yellow)
                             .add_modifier(Modifier::BOLD),
+                    ),
+                    Span::styled(
+                        format!("[{}]: ", t),
+                        Style::default().add_modifier(Modifier::BOLD),
                     ),
                     Span::raw(format!("{}", m)),
                 ])
@@ -154,7 +159,7 @@ impl Application {
 
         let messages = Paragraph::new(messages)
             .block(Block::default().borders(Borders::ALL).title(Span::styled(
-                "Messages",
+                format!("Messages - {}", self.get_time()),
                 Style::default().add_modifier(Modifier::BOLD),
             )))
             .style(Style::default().fg(Color::White))
@@ -254,7 +259,7 @@ impl Application {
                     Spans::from(vec![
                         Span::raw("Press "),
                         Span::styled(
-                            "ESC",
+                            "Q",
                             Style::default().add_modifier(Modifier::BOLD).fg(Color::Red),
                         ),
                         Span::raw(" to exit, "),
@@ -349,5 +354,11 @@ impl Application {
                 &mut self.input_pub_subject
             }
         }
+    }
+
+    fn get_time(&self) -> String {
+        let now = Local::now();
+
+        format!("{:02}:{:02}:{:02}", now.hour(), now.minute(), now.second())
     }
 }

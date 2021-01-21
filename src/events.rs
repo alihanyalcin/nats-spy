@@ -2,15 +2,19 @@ use crate::nats::NatsClient;
 use anyhow::Result;
 use crossterm::event::{read, Event};
 use log::{error, info};
-use std::sync::mpsc::{channel, Receiver, RecvError, Sender};
-use std::sync::{Arc, Mutex};
-use std::thread;
-use std::time::Duration;
+use std::{
+    sync::{
+        mpsc::{channel, Receiver, RecvError, Sender},
+        Arc, Mutex,
+    },
+    thread,
+    time::Duration,
+};
 
 #[derive(Clone)]
 pub enum InputEvent {
     Input(Event),
-    Messages(String),
+    Messages(String, String),
     Tick,
 }
 
@@ -69,7 +73,7 @@ impl Events {
             // connect nats server
             let mut nc = nc.lock().unwrap();
             match nc.connect() {
-                Ok(_) => info!("Connected to NATS Server"),
+                Ok(_) => info!("Connected to NATS Server."),
                 Err(err) => {
                     error!("Cannot connect. {}", err);
                     return;
@@ -89,11 +93,10 @@ impl Events {
             // listen new messages
             for msg in sub.messages() {
                 tx_message
-                    .send(InputEvent::Messages(format!(
-                        "[{}] -> {}",
+                    .send(InputEvent::Messages(
                         msg.subject,
-                        std::str::from_utf8(&msg.data).unwrap()
-                    )))
+                        std::str::from_utf8(&msg.data).unwrap().to_string(),
+                    ))
                     .unwrap()
             }
         });
@@ -110,7 +113,11 @@ impl Events {
     }
 
     pub fn publish(&self, sub: String, msg: String) {
-        // publish nats message
+        if sub.is_empty() {
+            error!("Subject is empty!");
+            return;
+        }
+
         match self.nats_client.lock().unwrap().publish(sub.clone(), msg) {
             Ok(_) => info!("Message send to subject '{}'", sub.clone()),
             Err(err) => error!("{}", err),
@@ -118,14 +125,19 @@ impl Events {
     }
 
     pub fn request(&self, sub: String, msg: String) {
+        if sub.is_empty() {
+            error!("Subject is empty!");
+            return;
+        }
+
+        info!("Subject '{}' requested.", sub.clone());
         match self.nats_client.lock().unwrap().request(sub, msg) {
             Ok(resp) => self
                 .tx
-                .send(InputEvent::Messages(format!(
-                    "[{}] -> {}",
+                .send(InputEvent::Messages(
                     resp.subject,
-                    std::str::from_utf8(&resp.data).unwrap()
-                )))
+                    std::str::from_utf8(&resp.data).unwrap().to_string(),
+                ))
                 .unwrap(),
             Err(err) => {
                 error!("{}", err)

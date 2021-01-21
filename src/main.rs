@@ -5,14 +5,13 @@ mod nats;
 use crate::application::Application;
 use anyhow::Result;
 use clap::{crate_authors, crate_description, crate_name, crate_version, App, Arg};
-use crossterm::terminal::{
-    disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen,
+use crossterm::{
+    terminal::{disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen},
+    ExecutableCommand,
 };
-use crossterm::ExecutableCommand;
 use scopeguard::defer;
 use std::io;
-use tui::backend::CrosstermBackend;
-use tui::Terminal;
+use tui::{backend::CrosstermBackend, Terminal};
 use tui_logger::{init_logger, set_default_level};
 
 fn main() -> Result<()> {
@@ -32,20 +31,20 @@ fn main() -> Result<()> {
         )
         .arg(
             Arg::with_name("subject")
-                .help("Subscription subject for the given NATS connection.")
+                .help("Subscription subject for NATS connection.")
                 .short("s")
                 .long("subject")
                 .default_value(">"),
         )
         .arg(
             Arg::with_name("username")
-                .help("Authenticate with NATS using a username and password.")
+                .help("Authenticate with NATS using username.")
                 .short("u")
                 .long("username"),
         )
         .arg(
             Arg::with_name("password")
-                .help("Authenticate with NATS using a username and password.")
+                .help("Authenticate with NATS using password.")
                 .short("p")
                 .long("password"),
         )
