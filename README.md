@@ -27,5 +27,3 @@ OPTIONS:
     -n, --nats-url <nats-url>    NATS Server to establish a connection. [default: nats://localhost:4222]
     -s, --subject <subject>      Subscription subject for NATS connection. [default: >] 
 ```
-
-Inspired by [mqtt-spy](https://github.com/eclipse/paho.mqtt-spy)
